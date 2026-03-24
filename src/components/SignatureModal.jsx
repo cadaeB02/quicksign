@@ -1,0 +1,181 @@
+import { useState, useRef, useEffect } from 'react'
+import SignaturePad from 'signature_pad'
+
+export default function SignatureModal({ onApply, onClose }) {
+  const [activeTab, setActiveTab] = useState('draw')
+  const [typedName, setTypedName] = useState('')
+  const [uploadedImage, setUploadedImage] = useState(null)
+  const canvasRef = useRef(null)
+  const sigPadRef = useRef(null)
+  const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    if (activeTab === 'draw' && canvasRef.current && !sigPadRef.current) {
+      const canvas = canvasRef.current
+      canvas.width = canvas.offsetWidth
+      canvas.height = 160
+      sigPadRef.current = new SignaturePad(canvas, {
+        backgroundColor: 'rgb(255, 255, 255)',
+        penColor: '#1a1a2e',
+        minWidth: 1.5,
+        maxWidth: 3,
+      })
+    }
+    return () => {
+      if (sigPadRef.current) {
+        sigPadRef.current.off()
+        sigPadRef.current = null
+      }
+    }
+  }, [activeTab])
+
+  const handleClear = () => {
+    if (sigPadRef.current) sigPadRef.current.clear()
+  }
+
+  const handleApply = () => {
+    let dataUrl = null
+
+    if (activeTab === 'draw') {
+      if (!sigPadRef.current || sigPadRef.current.isEmpty()) {
+        alert('Please draw your signature first.')
+        return
+      }
+      dataUrl = sigPadRef.current.toDataURL('image/png')
+    } else if (activeTab === 'type') {
+      if (!typedName.trim()) {
+        alert('Please type your name.')
+        return
+      }
+      // Generate signature image from typed text
+      const canvas = document.createElement('canvas')
+      canvas.width = 400
+      canvas.height = 120
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = 'white'
+      ctx.fillRect(0, 0, 400, 120)
+      ctx.fillStyle = '#1a1a2e'
+      ctx.font = '48px "Dancing Script", cursive'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(typedName, 200, 60)
+      dataUrl = canvas.toDataURL('image/png')
+    } else if (activeTab === 'upload') {
+      if (!uploadedImage) {
+        alert('Please upload a signature image.')
+        return
+      }
+      dataUrl = uploadedImage
+    }
+
+    onApply(dataUrl)
+  }
+
+  const handleUpload = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => setUploadedImage(ev.target.result)
+    reader.readAsDataURL(file)
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Create Your Signature</h2>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal-body">
+          <div className="sig-tabs">
+            <button
+              className={`sig-tab ${activeTab === 'draw' ? 'active' : ''}`}
+              onClick={() => setActiveTab('draw')}
+            >
+              ✏️ Draw
+            </button>
+            <button
+              className={`sig-tab ${activeTab === 'type' ? 'active' : ''}`}
+              onClick={() => setActiveTab('type')}
+            >
+              ⌨️ Type
+            </button>
+            <button
+              className={`sig-tab ${activeTab === 'upload' ? 'active' : ''}`}
+              onClick={() => setActiveTab('upload')}
+            >
+              📤 Upload
+            </button>
+          </div>
+
+          {activeTab === 'draw' && (
+            <div className="sig-draw-area">
+              <canvas ref={canvasRef} style={{ height: 160 }} />
+              {sigPadRef.current?.isEmpty() !== false && (
+                <span className="sig-draw-hint">Draw your signature here</span>
+              )}
+              <button className="sig-clear-btn" onClick={handleClear}>
+                Clear
+              </button>
+            </div>
+          )}
+
+          {activeTab === 'type' && (
+            <div>
+              <input
+                type="text"
+                className="sig-type-input"
+                placeholder="Type your full name"
+                value={typedName}
+                onChange={(e) => setTypedName(e.target.value)}
+                autoFocus
+                id="sig-type-input"
+              />
+              {typedName && (
+                <div className="sig-type-preview">
+                  <span>{typedName}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'upload' && (
+            <div>
+              <div
+                className="sig-upload-area"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <span style={{ fontSize: 32, display: 'block', marginBottom: 8 }}>📤</span>
+                <p style={{ color: 'var(--text-muted)' }}>
+                  Click to upload a signature image (PNG, JPG)
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg"
+                  style={{ display: 'none' }}
+                  onChange={handleUpload}
+                />
+              </div>
+              {uploadedImage && (
+                <div className="sig-upload-preview">
+                  <img src={uploadedImage} alt="Uploaded signature" />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn btn-primary" onClick={handleApply} id="apply-signature-btn">
+            Apply Signature
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
