@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import SignaturePad from 'signature_pad'
+import { IconPen, IconKeyboard, IconUpload, IconX } from './Icons'
 
 export default function SignatureModal({ onApply, onClose }) {
   const [activeTab, setActiveTab] = useState('draw')
@@ -47,7 +48,6 @@ export default function SignatureModal({ onApply, onClose }) {
         alert('Please type your name.')
         return
       }
-      // Generate signature image from typed text
       const canvas = document.createElement('canvas')
       canvas.width = 400
       canvas.height = 120
@@ -84,7 +84,7 @@ export default function SignatureModal({ onApply, onClose }) {
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Create Your Signature</h2>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose}><IconX size={18} /></button>
         </div>
 
         <div className="modal-body">
@@ -93,19 +93,19 @@ export default function SignatureModal({ onApply, onClose }) {
               className={`sig-tab ${activeTab === 'draw' ? 'active' : ''}`}
               onClick={() => setActiveTab('draw')}
             >
-              ✏️ Draw
+              <IconPen size={14} /> Draw
             </button>
             <button
               className={`sig-tab ${activeTab === 'type' ? 'active' : ''}`}
               onClick={() => setActiveTab('type')}
             >
-              ⌨️ Type
+              <IconKeyboard size={14} /> Type
             </button>
             <button
               className={`sig-tab ${activeTab === 'upload' ? 'active' : ''}`}
               onClick={() => setActiveTab('upload')}
             >
-              📤 Upload
+              <IconUpload size={14} /> Upload
             </button>
           </div>
 
@@ -146,7 +146,7 @@ export default function SignatureModal({ onApply, onClose }) {
                 className="sig-upload-area"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <span style={{ fontSize: 32, display: 'block', marginBottom: 8 }}>📤</span>
+                <span style={{ display: 'block', marginBottom: 8 }}><IconUpload size={32} color="var(--text-muted)" /></span>
                 <p style={{ color: 'var(--text-muted)' }}>
                   Click to upload a signature image (PNG, JPG)
                 </p>

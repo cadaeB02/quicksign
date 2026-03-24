@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { renderPdfPage, renderThumbnail } from '../utils/pdfUtils'
 import SignatureField from './SignatureField'
+import { IconPen, IconChevronLeft, IconChevronRight, IconMinus, IconPlus, IconX } from './Icons'
 
 export default function PDFViewer({
   pdf,
@@ -49,6 +50,10 @@ export default function PDFViewer({
     if (!canvas) return
     if (!selectedSignerId && signers.length > 0) {
       alert('Please select who this signature field is for using the "I am signing as" bar.')
+      return
+    }
+    if (signers.length === 0) {
+      alert('Please add at least one signer in the sidebar first.')
       return
     }
     const x = (canvasSize.width / 2) - 100
@@ -108,7 +113,6 @@ export default function PDFViewer({
           </div>
         </div>
 
-        {/* Signers section */}
         <div className="sidebar-section">
           <h3>Signers</h3>
           <div className="signer-list">
@@ -126,7 +130,7 @@ export default function PDFViewer({
                     className="signer-remove-btn"
                     onClick={() => onRemoveSigner(s.id)}
                     title="Remove signer"
-                  >✕</button>
+                  ><IconX size={10} /></button>
                 </div>
               )
             })}
@@ -144,7 +148,9 @@ export default function PDFViewer({
               onChange={e => setNewSignerEmail(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAddSigner()}
             />
-            <button className="btn btn-secondary btn-sm" onClick={handleAddSigner}>+</button>
+            <button className="btn btn-secondary btn-sm" onClick={handleAddSigner}>
+              <IconPlus size={14} />
+            </button>
           </div>
         </div>
 
@@ -156,7 +162,7 @@ export default function PDFViewer({
             style={{ width: '100%', justifyContent: 'center' }}
             id="add-field-btn"
           >
-            ✍️ Add Signature Field
+            <IconPen size={14} /> Add Signature Field
           </button>
           <p style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
             Fields are assigned to the currently selected signer
@@ -171,19 +177,23 @@ export default function PDFViewer({
               className="btn btn-icon btn-sm"
               onClick={() => onPageChange(Math.max(1, currentPage - 1))}
               disabled={currentPage <= 1}
-            >◀</button>
+            ><IconChevronLeft size={16} /></button>
             <span className="page-display">{currentPage} / {totalPages}</span>
             <button
               className="btn btn-icon btn-sm"
               onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage >= totalPages}
-            >▶</button>
+            ><IconChevronRight size={16} /></button>
 
             <div className="toolbar-divider" />
 
-            <button className="btn btn-icon btn-sm" onClick={() => onScaleChange(Math.max(0.5, scale - 0.25))}>−</button>
+            <button className="btn btn-icon btn-sm" onClick={() => onScaleChange(Math.max(0.5, scale - 0.25))}>
+              <IconMinus size={16} />
+            </button>
             <span className="zoom-display">{Math.round(scale * 100)}%</span>
-            <button className="btn btn-icon btn-sm" onClick={() => onScaleChange(Math.min(3, scale + 0.25))}>+</button>
+            <button className="btn btn-icon btn-sm" onClick={() => onScaleChange(Math.min(3, scale + 0.25))}>
+              <IconPlus size={16} />
+            </button>
           </div>
 
           <div className="toolbar-group">
@@ -192,7 +202,7 @@ export default function PDFViewer({
               onClick={handleAddFieldClick}
               id="add-field-toolbar-btn"
             >
-              ✍️ Add Field
+              <IconPen size={14} /> Add Field
             </button>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { IconPen, IconX } from './Icons'
 
 const SIGNER_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#ec4899', '#06b6d4']
 
@@ -19,7 +20,7 @@ export default function SignatureField({
   const color = signer?.color || SIGNER_COLORS[0]
 
   const handleMouseDown = (e) => {
-    if (e.target.classList.contains('delete-btn') || e.target.classList.contains('resize-handle')) return
+    if (e.target.closest('.delete-btn') || e.target.classList.contains('resize-handle')) return
     e.preventDefault()
     setDragging(true)
     dragStart.current = { x: e.clientX - field.x, y: e.clientY - field.y }
@@ -68,32 +69,21 @@ export default function SignatureField({
         width: field.width,
         height: field.height,
         borderColor: field.signed ? 'var(--success)' : color,
-        background: field.signed
-          ? 'rgba(16, 185, 129, 0.05)'
-          : `${color}15`,
+        background: field.signed ? 'rgba(16, 185, 129, 0.05)' : `${color}15`,
       }}
       onMouseDown={handleMouseDown}
       onDoubleClick={() => onClick(field)}
       id={`sig-field-${field.id}`}
     >
-      {/* Signer name tag above field */}
       {signer && !field.signed && (
-        <span
-          className="signer-name-tag"
-          style={{ background: color, color: 'white' }}
-        >
+        <span className="signer-name-tag" style={{ background: color, color: 'white' }}>
           {signer.name}
         </span>
       )}
 
       {field.signed && field.signatureDataUrl ? (
         <>
-          <img
-            src={field.signatureDataUrl}
-            alt="Signature"
-            className="signature-image"
-            draggable={false}
-          />
+          <img src={field.signatureDataUrl} alt="Signature" className="signature-image" draggable={false} />
           {field.signedAt && (
             <span className="signature-timestamp">
               Signed by {field.signedByName || signer?.name}: {field.signedAt}
@@ -102,7 +92,7 @@ export default function SignatureField({
         </>
       ) : (
         <div className="signature-field-label" style={{ color }}>
-          <span className="icon">✍️</span>
+          <span className="icon"><IconPen size={20} color={color} /></span>
           <span>Double-click to sign</span>
         </div>
       )}
@@ -114,7 +104,7 @@ export default function SignatureField({
             onClick={(e) => { e.stopPropagation(); onDelete(field.id) }}
             title="Remove field"
           >
-            ✕
+            <IconX size={12} color="white" />
           </button>
           <div className="resize-handle" style={{ background: color }} onMouseDown={handleResizeStart} />
         </>

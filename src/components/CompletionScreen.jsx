@@ -1,13 +1,17 @@
+import { IconCheckCircle, IconLock, IconDownload } from './Icons'
+
 export default function CompletionScreen({ auditSummary, signers, onDownload, onStartOver }) {
   return (
     <div className="completion-screen">
       <div className="completion-card">
-        <div className="completion-icon">✅</div>
+        <div className="completion-icon">
+          <IconCheckCircle size={36} color="var(--success)" />
+        </div>
         <h2>Document Signed!</h2>
         <p>Your document has been signed and is ready to download.</p>
 
         <div className="audit-summary">
-          <h3>🔒 Audit Trail</h3>
+          <h3><IconLock size={14} /> Audit Trail</h3>
           <div className="audit-row">
             <span className="label">Document</span>
             <span className="value">{auditSummary?.documentName || '—'}</span>
@@ -45,7 +49,7 @@ export default function CompletionScreen({ auditSummary, signers, onDownload, on
             id="download-btn"
             style={{ width: '100%', justifyContent: 'center' }}
           >
-            📥 Download Signed PDF
+            <IconDownload size={18} /> Download Signed PDF
           </button>
           <button
             className="btn btn-secondary"
