@@ -5,6 +5,8 @@ import SignatureField from './SignatureField'
 export default function PDFViewer({
   pdf,
   fields,
+  signers,
+  selectedSignerId,
   currentPage,
   totalPages,
   scale,
@@ -15,41 +17,40 @@ export default function PDFViewer({
   onResizeField,
   onDeleteField,
   onFieldClick,
+  onAddSigner,
+  onRemoveSigner,
 }) {
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
   const thumbCanvasRefs = useRef({})
+  const [newSignerName, setNewSignerName] = useState('')
+  const [newSignerEmail, setNewSignerEmail] = useState('')
 
-  // Render main page
   useEffect(() => {
     if (!pdf || !canvasRef.current) return
     renderPdfPage(pdf, currentPage, canvasRef.current, scale).then(setCanvasSize)
   }, [pdf, currentPage, scale])
 
-  // Render thumbnails
   useEffect(() => {
     if (!pdf) return
     for (let i = 1; i <= totalPages; i++) {
       const canvas = thumbCanvasRefs.current[i]
-      if (canvas) {
-        renderThumbnail(pdf, i, canvas)
-      }
+      if (canvas) renderThumbnail(pdf, i, canvas)
     }
   }, [pdf, totalPages])
 
   const handleCanvasClick = useCallback((e) => {
     if (e.target !== canvasRef.current) return
-    const rect = canvasRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    // Only add field if in "add" mode (handled by parent via onAddField)
   }, [])
 
   const handleAddFieldClick = () => {
-    // Place a new field at the center of the visible canvas area
     const canvas = canvasRef.current
     if (!canvas) return
+    if (!selectedSignerId && signers.length > 0) {
+      alert('Please select who this signature field is for using the "I am signing as" bar.')
+      return
+    }
     const x = (canvasSize.width / 2) - 100
     const y = (canvasSize.height / 2) - 30
     onAddField({
@@ -58,14 +59,21 @@ export default function PDFViewer({
       width: 200,
       height: 60,
       page: currentPage,
+      signerId: selectedSignerId,
     })
+  }
+
+  const handleAddSigner = () => {
+    if (!newSignerName.trim()) return
+    onAddSigner({ name: newSignerName.trim(), email: newSignerEmail.trim() })
+    setNewSignerName('')
+    setNewSignerEmail('')
   }
 
   const pageFields = fields.filter(f => f.page === currentPage)
 
   return (
     <div className="editor-layout">
-      {/* Sidebar with page thumbnails */}
       <div className="editor-sidebar">
         <div className="sidebar-section">
           <h3>Pages</h3>
@@ -100,6 +108,46 @@ export default function PDFViewer({
           </div>
         </div>
 
+        {/* Signers section */}
+        <div className="sidebar-section">
+          <h3>Signers</h3>
+          <div className="signer-list">
+            {signers.map(s => {
+              const signerFieldCount = fields.filter(f => f.signerId === s.id).length
+              return (
+                <div key={s.id} className={`signer-item ${selectedSignerId === s.id ? 'active' : ''}`}>
+                  <div className="signer-dot" style={{ background: s.color }} />
+                  <div className="signer-item-info">
+                    <div className="signer-item-name">{s.name}</div>
+                    {s.email && <div className="signer-item-email">{s.email}</div>}
+                  </div>
+                  <span className="signer-item-fields">{signerFieldCount} fields</span>
+                  <button
+                    className="signer-remove-btn"
+                    onClick={() => onRemoveSigner(s.id)}
+                    title="Remove signer"
+                  >✕</button>
+                </div>
+              )
+            })}
+          </div>
+          <div className="add-signer-inline">
+            <input
+              placeholder="Name"
+              value={newSignerName}
+              onChange={e => setNewSignerName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAddSigner()}
+            />
+            <input
+              placeholder="Email"
+              value={newSignerEmail}
+              onChange={e => setNewSignerEmail(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAddSigner()}
+            />
+            <button className="btn btn-secondary btn-sm" onClick={handleAddSigner}>+</button>
+          </div>
+        </div>
+
         <div className="sidebar-section">
           <h3>Signature Fields</h3>
           <button
@@ -111,12 +159,11 @@ export default function PDFViewer({
             ✍️ Add Signature Field
           </button>
           <p style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
-            Fields can be dragged and resized on the document
+            Fields are assigned to the currently selected signer
           </p>
         </div>
       </div>
 
-      {/* Main canvas area */}
       <div className="editor-canvas-area">
         <div className="editor-toolbar">
           <div className="toolbar-group">
@@ -124,35 +171,19 @@ export default function PDFViewer({
               className="btn btn-icon btn-sm"
               onClick={() => onPageChange(Math.max(1, currentPage - 1))}
               disabled={currentPage <= 1}
-            >
-              ◀
-            </button>
-            <span className="page-display">
-              {currentPage} / {totalPages}
-            </span>
+            >◀</button>
+            <span className="page-display">{currentPage} / {totalPages}</span>
             <button
               className="btn btn-icon btn-sm"
               onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage >= totalPages}
-            >
-              ▶
-            </button>
+            >▶</button>
 
             <div className="toolbar-divider" />
 
-            <button
-              className="btn btn-icon btn-sm"
-              onClick={() => onScaleChange(Math.max(0.5, scale - 0.25))}
-            >
-              −
-            </button>
+            <button className="btn btn-icon btn-sm" onClick={() => onScaleChange(Math.max(0.5, scale - 0.25))}>−</button>
             <span className="zoom-display">{Math.round(scale * 100)}%</span>
-            <button
-              className="btn btn-icon btn-sm"
-              onClick={() => onScaleChange(Math.min(3, scale + 0.25))}
-            >
-              +
-            </button>
+            <button className="btn btn-icon btn-sm" onClick={() => onScaleChange(Math.min(3, scale + 0.25))}>+</button>
           </div>
 
           <div className="toolbar-group">
@@ -180,6 +211,7 @@ export default function PDFViewer({
                 key={field.id}
                 field={field}
                 scale={scale}
+                signer={signers.find(s => s.id === field.signerId)}
                 onMove={onMoveField}
                 onResize={onResizeField}
                 onDelete={onDeleteField}

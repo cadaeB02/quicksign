@@ -1,4 +1,4 @@
-export default function CompletionScreen({ auditSummary, onDownload, onStartOver }) {
+export default function CompletionScreen({ auditSummary, signers, onDownload, onStartOver }) {
   return (
     <div className="completion-screen">
       <div className="completion-card">
@@ -12,20 +12,20 @@ export default function CompletionScreen({ auditSummary, onDownload, onStartOver
             <span className="label">Document</span>
             <span className="value">{auditSummary?.documentName || '—'}</span>
           </div>
-          <div className="audit-row">
-            <span className="label">Signer</span>
-            <span className="value">{auditSummary?.signerName || '—'}</span>
-          </div>
-          <div className="audit-row">
-            <span className="label">Email</span>
-            <span className="value">{auditSummary?.signerEmail || '—'}</span>
-          </div>
-          <div className="audit-row">
-            <span className="label">Signed Fields</span>
-            <span className="value">
-              {auditSummary?.signedFields || 0} of {auditSummary?.totalFields || 0}
-            </span>
-          </div>
+          {auditSummary?.signers?.map((s, i) => (
+            <div key={i} className="audit-row">
+              <span className="label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: s.color, display: 'inline-block'
+                }} />
+                {s.name}
+              </span>
+              <span className="value">
+                {s.signedCount} of {s.totalCount} fields
+              </span>
+            </div>
+          ))}
           <div className="audit-row">
             <span className="label">Completed</span>
             <span className="value">{auditSummary?.completedAtFormatted || '—'}</span>

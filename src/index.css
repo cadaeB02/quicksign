@@ -1070,6 +1070,201 @@ body {
   color: var(--success);
 }
 
+/* ===== Multi-Signer System ===== */
+.signer-colors {
+  --signer-0: #6366f1;
+  --signer-1: #f59e0b;
+  --signer-2: #10b981;
+  --signer-3: #ef4444;
+  --signer-4: #ec4899;
+  --signer-5: #06b6d4;
+}
+
+.signer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.signer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  transition: var(--transition);
+}
+
+.signer-item.active {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--bg-glass-hover);
+}
+
+.signer-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.signer-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.signer-item-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.signer-item-email {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.signer-item-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.signer-item .signer-remove-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: none;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  transition: var(--transition);
+}
+
+.signer-item .signer-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.signer-item-fields {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+  padding: 2px 6px;
+  background: var(--bg-glass);
+  border-radius: 99px;
+}
+
+.add-signer-inline {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.add-signer-inline input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 12px;
+  outline: none;
+}
+
+.add-signer-inline input:focus {
+  border-color: var(--accent);
+}
+
+.add-signer-inline input::placeholder {
+  color: var(--text-muted);
+}
+
+.signer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: var(--transition);
+}
+
+.signer-pill:hover {
+  opacity: 0.8;
+}
+
+.signer-pill .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.signature-field .signer-name-tag {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.who-signing-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.who-signing-bar .label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.who-signing-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* field signer select dropdown in toolbar */
+.field-signer-select {
+  padding: 5px 8px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+
+.field-signer-select:focus {
+  border-color: var(--accent);
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .editor-sidebar {
@@ -1099,5 +1294,9 @@ body {
 
   .upload-hero h2 {
     font-size: 28px;
+  }
+
+  .who-signing-bar {
+    flex-wrap: wrap;
   }
 }

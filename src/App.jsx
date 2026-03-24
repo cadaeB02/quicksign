@@ -2,10 +2,11 @@ import { useState, useCallback, useRef } from 'react'
 import UploadScreen from './components/UploadScreen'
 import PDFViewer from './components/PDFViewer'
 import SignatureModal from './components/SignatureModal'
-import SignerInfoForm from './components/SignerInfoForm'
 import CompletionScreen from './components/CompletionScreen'
 import { loadPdf, embedSignatures, downloadPdf } from './utils/pdfUtils'
 import { hashDocument, createAuditEntry, buildAuditSummary } from './utils/auditTrail'
+
+const SIGNER_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#ec4899', '#06b6d4']
 
 const STEPS = [
   { num: 1, label: 'Upload' },
@@ -22,8 +23,8 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState(1)
   const [scale, setScale] = useState(1.5)
   const [fields, setFields] = useState([])
-  const [signerInfo, setSignerInfo] = useState(null)
-  const [showSignerForm, setShowSignerForm] = useState(false)
+  const [signers, setSigners] = useState([])
+  const [selectedSignerId, setSelectedSignerId] = useState(null)
   const [activeField, setActiveField] = useState(null)
   const [showSigModal, setShowSigModal] = useState(false)
   const [auditEntries, setAuditEntries] = useState([])
@@ -31,11 +32,10 @@ export default function App() {
   const [signedPdfBytes, setSignedPdfBytes] = useState(null)
 
   const nextFieldId = useRef(1)
+  const nextSignerId = useRef(1)
 
-  // Step 1: File uploaded
+  // Upload
   const handleFileLoaded = useCallback(async (file) => {
-    // IMPORTANT: Store a copy of the bytes BEFORE passing to pdf.js,
-    // because pdf.js may transfer/detach the ArrayBuffer
     const bytesCopy = new Uint8Array(file.arrayBuffer).slice()
     const fileWithBytes = { ...file, bytes: bytesCopy }
     setPdfFile(fileWithBytes)
@@ -44,48 +44,53 @@ export default function App() {
     setTotalPages(pdf.numPages)
     setCurrentPage(1)
     setStep(2)
-    // Ask for signer info immediately
-    setShowSignerForm(true)
   }, [])
 
-  // Signer info submitted
-  const handleSignerSubmit = useCallback((info) => {
-    setSignerInfo(info)
-    setShowSignerForm(false)
+  // Add signer
+  const handleAddSigner = useCallback(({ name, email }) => {
+    const id = nextSignerId.current++
+    const color = SIGNER_COLORS[(id - 1) % SIGNER_COLORS.length]
+    const newSigner = { id, name, email, color }
+    setSigners(prev => [...prev, newSigner])
+    // Auto-select the first signer
+    setSelectedSignerId(prev => prev || id)
     setAuditEntries(prev => [...prev, createAuditEntry({
-      signerName: info.name,
-      signerEmail: info.email,
-      action: 'Document opened and signer identified',
+      signerName: name,
+      signerEmail: email,
+      action: `Signer "${name}" added to document`,
     })])
   }, [])
 
-  // Add signature field
-  const handleAddField = useCallback(({ x, y, width, height, page }) => {
+  // Remove signer
+  const handleRemoveSigner = useCallback((id) => {
+    setSigners(prev => prev.filter(s => s.id !== id))
+    setFields(prev => prev.filter(f => f.signerId !== id))
+    setSelectedSignerId(prev => prev === id ? null : prev)
+  }, [])
+
+  // Add field (assigned to selected signer)
+  const handleAddField = useCallback(({ x, y, width, height, page, signerId }) => {
     const id = nextFieldId.current++
     setFields(prev => [...prev, {
-      id,
-      x,
-      y,
-      width,
-      height,
-      page,
+      id, x, y, width, height, page,
+      signerId: signerId || selectedSignerId,
       signed: false,
       signatureDataUrl: null,
       signedAt: null,
+      signedByName: null,
+      signedByEmail: null,
     }])
-  }, [])
+  }, [selectedSignerId])
 
-  // Move field
+  // Move, resize, delete
   const handleMoveField = useCallback((id, { x, y }) => {
     setFields(prev => prev.map(f => f.id === id ? { ...f, x, y } : f))
   }, [])
 
-  // Resize field
   const handleResizeField = useCallback((id, { width, height }) => {
     setFields(prev => prev.map(f => f.id === id ? { ...f, width, height } : f))
   }, [])
 
-  // Delete field
   const handleDeleteField = useCallback((id) => {
     setFields(prev => prev.filter(f => f.id !== id))
   }, [])
@@ -93,72 +98,84 @@ export default function App() {
   // Field clicked — open signature modal
   const handleFieldClick = useCallback((field) => {
     if (field.signed) return
-    if (!signerInfo) {
-      setShowSignerForm(true)
+    // Check if the user selected themselves as this signer
+    if (!selectedSignerId || field.signerId !== selectedSignerId) {
+      const fieldSigner = signers.find(s => s.id === field.signerId)
+      alert(`This field is assigned to ${fieldSigner?.name || 'another signer'}. Select yourself as "${fieldSigner?.name}" to sign it.`)
       return
     }
     setActiveField(field)
     setShowSigModal(true)
-  }, [signerInfo])
+  }, [selectedSignerId, signers])
 
   // Signature applied
   const handleSignatureApplied = useCallback((dataUrl) => {
     if (!activeField) return
+    const signer = signers.find(s => s.id === activeField.signerId)
     const now = new Date().toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
       timeZoneName: 'short',
     })
     setFields(prev => prev.map(f =>
       f.id === activeField.id
-        ? { ...f, signed: true, signatureDataUrl: dataUrl, signedAt: now }
+        ? {
+            ...f, signed: true, signatureDataUrl: dataUrl, signedAt: now,
+            signedByName: signer?.name, signedByEmail: signer?.email,
+          }
         : f
     ))
     setAuditEntries(prev => [...prev, createAuditEntry({
-      signerName: signerInfo.name,
-      signerEmail: signerInfo.email,
+      signerName: signer?.name || 'Unknown',
+      signerEmail: signer?.email || '',
       action: `Signature applied to field on page ${activeField.page}`,
     })])
     setShowSigModal(false)
     setActiveField(null)
-  }, [activeField, signerInfo])
+  }, [activeField, signers])
 
-  // Finalize — embed signatures into PDF
+  // Finalize
   const handleFinalize = useCallback(async () => {
     if (!pdfFile || fields.length === 0) return
     const unsignedFields = fields.filter(f => !f.signed)
     if (unsignedFields.length > 0) {
       const proceed = confirm(
-        `${unsignedFields.length} field(s) are not signed. Continue without signing them?`
+        `${unsignedFields.length} field(s) are not signed yet. You can download now and share the PDF with other signers to sign their fields.\n\nContinue?`
       )
       if (!proceed) return
     }
 
     try {
       const pdfBytes = pdfFile.bytes instanceof Uint8Array
-        ? pdfFile.bytes
-        : new Uint8Array(pdfFile.arrayBuffer)
+        ? pdfFile.bytes : new Uint8Array(pdfFile.arrayBuffer)
 
       const docHash = await hashDocument(pdfBytes.buffer)
+
+      // Build per-signer summary
+      const signerSummaries = signers.map(s => ({
+        name: s.name,
+        email: s.email,
+        color: s.color,
+        totalCount: fields.filter(f => f.signerId === s.id).length,
+        signedCount: fields.filter(f => f.signerId === s.id && f.signed).length,
+      }))
+
       const summary = buildAuditSummary({
         documentName: pdfFile.name,
         documentHash: docHash,
-        signerName: signerInfo?.name,
-        signerEmail: signerInfo?.email,
+        signerName: signers.map(s => s.name).join(', '),
+        signerEmail: signers.map(s => s.email).join(', '),
         fields,
         entries: [
           ...auditEntries,
           createAuditEntry({
-            signerName: signerInfo?.name,
-            signerEmail: signerInfo?.email,
+            signerName: 'System',
+            signerEmail: '',
             action: 'Document finalized and signed PDF generated',
           }),
         ],
       })
+      summary.signers = signerSummaries
 
       const signedBytes = await embedSignatures({
         originalPdfBytes: pdfBytes,
@@ -174,7 +191,7 @@ export default function App() {
       console.error('Finalize error:', err)
       alert('Error generating signed PDF: ' + err.message)
     }
-  }, [pdfFile, fields, signerInfo, auditEntries, scale])
+  }, [pdfFile, fields, signers, auditEntries, scale])
 
   // Download
   const handleDownload = useCallback(() => {
@@ -190,17 +207,18 @@ export default function App() {
     setTotalPages(0)
     setCurrentPage(1)
     setFields([])
-    setSignerInfo(null)
+    setSigners([])
+    setSelectedSignerId(null)
     setAuditEntries([])
     setAuditSummary(null)
     setSignedPdfBytes(null)
-    setShowSignerForm(false)
     setStep(1)
     nextFieldId.current = 1
+    nextSignerId.current = 1
   }, [])
 
-  const allFieldsSigned = fields.length > 0 && fields.every(f => f.signed)
   const hasFields = fields.length > 0
+  const selectedSigner = signers.find(s => s.id === selectedSignerId)
 
   return (
     <div className="app">
@@ -216,17 +234,17 @@ export default function App() {
         <div className="header-actions">
           {step >= 2 && step < 4 && (
             <>
-              {!signerInfo && (
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setShowSignerForm(true)}
+              {selectedSigner && (
+                <span
+                  className="signer-pill"
+                  style={{
+                    background: `${selectedSigner.color}20`,
+                    color: selectedSigner.color,
+                    borderColor: selectedSigner.color,
+                  }}
                 >
-                  👤 Add Signer Info
-                </button>
-              )}
-              {signerInfo && (
-                <span className="badge badge-success" style={{ padding: '6px 12px' }}>
-                  👤 {signerInfo.name}
+                  <span className="dot" style={{ background: selectedSigner.color }} />
+                  {selectedSigner.name}
                 </span>
               )}
               {hasFields && (
@@ -247,12 +265,8 @@ export default function App() {
       <div className="steps-bar">
         {STEPS.map((s, i) => (
           <div key={s.num} style={{ display: 'flex', alignItems: 'center' }}>
-            <div
-              className={`step-item ${step === s.num ? 'active' : ''} ${step > s.num ? 'completed' : ''}`}
-            >
-              <div className="step-number">
-                {step > s.num ? '✓' : s.num}
-              </div>
+            <div className={`step-item ${step === s.num ? 'active' : ''} ${step > s.num ? 'completed' : ''}`}>
+              <div className="step-number">{step > s.num ? '✓' : s.num}</div>
               <span className="step-label">{s.label}</span>
             </div>
             {i < STEPS.length - 1 && (
@@ -262,6 +276,30 @@ export default function App() {
         ))}
       </div>
 
+      {/* "I am signing as" bar */}
+      {step >= 2 && step < 4 && signers.length > 0 && (
+        <div className="who-signing-bar">
+          <span className="label">I am signing as:</span>
+          <div className="who-signing-pills">
+            {signers.map(s => (
+              <span
+                key={s.id}
+                className="signer-pill"
+                onClick={() => setSelectedSignerId(s.id)}
+                style={{
+                  background: selectedSignerId === s.id ? `${s.color}30` : 'var(--bg-glass)',
+                  color: selectedSignerId === s.id ? s.color : 'var(--text-muted)',
+                  borderColor: selectedSignerId === s.id ? s.color : 'transparent',
+                }}
+              >
+                <span className="dot" style={{ background: s.color }} />
+                {s.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="app-main">
         {step === 1 && <UploadScreen onFileLoaded={handleFileLoaded} />}
@@ -270,6 +308,8 @@ export default function App() {
           <PDFViewer
             pdf={pdfDoc}
             fields={fields}
+            signers={signers}
+            selectedSignerId={selectedSignerId}
             currentPage={currentPage}
             totalPages={totalPages}
             scale={scale}
@@ -280,39 +320,26 @@ export default function App() {
             onResizeField={handleResizeField}
             onDeleteField={handleDeleteField}
             onFieldClick={handleFieldClick}
+            onAddSigner={handleAddSigner}
+            onRemoveSigner={handleRemoveSigner}
           />
         )}
 
         {step === 4 && (
           <CompletionScreen
             auditSummary={auditSummary}
+            signers={signers}
             onDownload={handleDownload}
             onStartOver={handleStartOver}
           />
         )}
       </main>
 
-      {/* Signer Info Modal */}
-      {showSignerForm && (
-        <div className="modal-overlay" onClick={() => setShowSignerForm(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Your Information</h2>
-              <button className="modal-close" onClick={() => setShowSignerForm(false)}>✕</button>
-            </div>
-            <SignerInfoForm onSubmit={handleSignerSubmit} initialValues={signerInfo} />
-          </div>
-        </div>
-      )}
-
       {/* Signature Modal */}
       {showSigModal && (
         <SignatureModal
           onApply={handleSignatureApplied}
-          onClose={() => {
-            setShowSigModal(false)
-            setActiveField(null)
-          }}
+          onClose={() => { setShowSigModal(false); setActiveField(null) }}
         />
       )}
     </div>

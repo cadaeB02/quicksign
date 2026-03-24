@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 
+const SIGNER_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#ec4899', '#06b6d4']
+
 export default function SignatureField({
   field,
   scale,
+  signer,
   onMove,
   onResize,
   onDelete,
@@ -13,45 +16,31 @@ export default function SignatureField({
   const dragStart = useRef({ x: 0, y: 0 })
   const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0 })
 
-  // Drag handlers
+  const color = signer?.color || SIGNER_COLORS[0]
+
   const handleMouseDown = (e) => {
     if (e.target.classList.contains('delete-btn') || e.target.classList.contains('resize-handle')) return
     e.preventDefault()
     setDragging(true)
-    dragStart.current = {
-      x: e.clientX - field.x,
-      y: e.clientY - field.y,
-    }
+    dragStart.current = { x: e.clientX - field.x, y: e.clientY - field.y }
   }
 
-  // Resize handlers
   const handleResizeStart = (e) => {
     e.preventDefault()
     e.stopPropagation()
     setResizing(true)
-    resizeStart.current = {
-      x: e.clientX,
-      y: e.clientY,
-      w: field.width,
-      h: field.height,
-    }
+    resizeStart.current = { x: e.clientX, y: e.clientY, w: field.width, h: field.height }
   }
 
   useEffect(() => {
     if (!dragging) return
     const handleMove = (e) => {
-      onMove(field.id, {
-        x: e.clientX - dragStart.current.x,
-        y: e.clientY - dragStart.current.y,
-      })
+      onMove(field.id, { x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y })
     }
     const handleUp = () => setDragging(false)
     window.addEventListener('mousemove', handleMove)
     window.addEventListener('mouseup', handleUp)
-    return () => {
-      window.removeEventListener('mousemove', handleMove)
-      window.removeEventListener('mouseup', handleUp)
-    }
+    return () => { window.removeEventListener('mousemove', handleMove); window.removeEventListener('mouseup', handleUp) }
   }, [dragging, field.id, onMove])
 
   useEffect(() => {
@@ -67,10 +56,7 @@ export default function SignatureField({
     const handleUp = () => setResizing(false)
     window.addEventListener('mousemove', handleMove)
     window.addEventListener('mouseup', handleUp)
-    return () => {
-      window.removeEventListener('mousemove', handleMove)
-      window.removeEventListener('mouseup', handleUp)
-    }
+    return () => { window.removeEventListener('mousemove', handleMove); window.removeEventListener('mouseup', handleUp) }
   }, [resizing, field.id, onResize])
 
   return (
@@ -81,11 +67,25 @@ export default function SignatureField({
         top: field.y,
         width: field.width,
         height: field.height,
+        borderColor: field.signed ? 'var(--success)' : color,
+        background: field.signed
+          ? 'rgba(16, 185, 129, 0.05)'
+          : `${color}15`,
       }}
       onMouseDown={handleMouseDown}
       onDoubleClick={() => onClick(field)}
       id={`sig-field-${field.id}`}
     >
+      {/* Signer name tag above field */}
+      {signer && !field.signed && (
+        <span
+          className="signer-name-tag"
+          style={{ background: color, color: 'white' }}
+        >
+          {signer.name}
+        </span>
+      )}
+
       {field.signed && field.signatureDataUrl ? (
         <>
           <img
@@ -96,12 +96,12 @@ export default function SignatureField({
           />
           {field.signedAt && (
             <span className="signature-timestamp">
-              Signed: {field.signedAt}
+              Signed by {field.signedByName || signer?.name}: {field.signedAt}
             </span>
           )}
         </>
       ) : (
-        <div className="signature-field-label">
+        <div className="signature-field-label" style={{ color }}>
           <span className="icon">✍️</span>
           <span>Double-click to sign</span>
         </div>
@@ -111,15 +111,12 @@ export default function SignatureField({
         <>
           <button
             className="delete-btn"
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete(field.id)
-            }}
+            onClick={(e) => { e.stopPropagation(); onDelete(field.id) }}
             title="Remove field"
           >
             ✕
           </button>
-          <div className="resize-handle" onMouseDown={handleResizeStart} />
+          <div className="resize-handle" style={{ background: color }} onMouseDown={handleResizeStart} />
         </>
       )}
     </div>
