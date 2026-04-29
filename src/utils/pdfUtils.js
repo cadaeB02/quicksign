@@ -49,23 +49,14 @@ export async function embedSignatures({ originalPdfBytes, fields, auditSummary, 
   const pdfDoc = await PDFDocument.load(originalPdfBytes)
   const pages = pdfDoc.getPages()
 
-  // Embed each signature into the PDF
+  // Embed each field into the PDF
   for (const field of fields) {
-    if (!field.signed || !field.signatureDataUrl) continue
+    if (!field.signed) continue
 
     const page = pages[field.page - 1]
     if (!page) continue
 
     const { width: pageWidth, height: pageHeight } = page.getSize()
-
-    // Convert signature data URL to image
-    const sigImageBytes = await fetch(field.signatureDataUrl).then(res => res.arrayBuffer())
-    let sigImage
-    if (field.signatureDataUrl.includes('image/png')) {
-      sigImage = await pdfDoc.embedPng(sigImageBytes)
-    } else {
-      sigImage = await pdfDoc.embedJpg(sigImageBytes)
-    }
 
     // Convert field position from canvas coords (scaled) to PDF coords
     const pdfX = (field.x / scale)
@@ -73,23 +64,32 @@ export async function embedSignatures({ originalPdfBytes, fields, auditSummary, 
     const pdfWidth = field.width / scale
     const pdfHeight = field.height / scale
 
-    page.drawImage(sigImage, {
-      x: pdfX,
-      y: pdfY,
-      width: pdfWidth,
-      height: pdfHeight,
-    })
-
-    // Draw timestamp below signature
-    if (field.signedAt) {
+    if (field.type === 'date' && field.dateValue) {
+      // Draw date text directly
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
-      const timestampText = `Signed: ${field.signedAt}`
-      page.drawText(timestampText, {
-        x: pdfX,
-        y: pdfY - 12,
-        size: 7,
+      const fontSize = Math.min(pdfHeight * 0.65, 14)
+      page.drawText(field.dateValue, {
+        x: pdfX + 4,
+        y: pdfY + (pdfHeight - fontSize) / 2,
+        size: fontSize,
         font,
-        color: rgb(0.4, 0.4, 0.4),
+        color: rgb(0.1, 0.1, 0.1),
+      })
+    } else if (field.signatureDataUrl) {
+      // Convert signature data URL to image
+      const sigImageBytes = await fetch(field.signatureDataUrl).then(res => res.arrayBuffer())
+      let sigImage
+      if (field.signatureDataUrl.includes('image/png')) {
+        sigImage = await pdfDoc.embedPng(sigImageBytes)
+      } else {
+        sigImage = await pdfDoc.embedJpg(sigImageBytes)
+      }
+
+      page.drawImage(sigImage, {
+        x: pdfX,
+        y: pdfY,
+        width: pdfWidth,
+        height: pdfHeight,
       })
     }
   }

@@ -64,13 +64,15 @@ export default function App() {
     setSelectedSignerId(prev => prev === id ? null : prev)
   }, [])
 
-  const handleAddField = useCallback(({ x, y, width, height, page, signerId }) => {
+  const handleAddField = useCallback(({ x, y, width, height, page, signerId, type }) => {
     const id = nextFieldId.current++
     setFields(prev => [...prev, {
       id, x, y, width, height, page,
+      type: type || 'signature',
       signerId: signerId || selectedSignerId,
       signed: false, signatureDataUrl: null, signedAt: null,
       signedByName: null, signedByEmail: null,
+      dateValue: null,
     }])
   }, [selectedSignerId])
 
@@ -93,6 +95,24 @@ export default function App() {
       alert(`This field is assigned to ${fieldSigner?.name || 'another signer'}. Select yourself as "${fieldSigner?.name}" to sign it.`)
       return
     }
+    // Date fields auto-fill with today's date
+    if (field.type === 'date') {
+      const today = new Date().toLocaleDateString('en-US', {
+        month: '2-digit', day: '2-digit', year: 'numeric',
+      })
+      const signer = signers.find(s => s.id === field.signerId)
+      setFields(prev => prev.map(f =>
+        f.id === field.id
+          ? { ...f, signed: true, dateValue: today,
+              signedByName: signer?.name, signedByEmail: signer?.email }
+          : f
+      ))
+      setAuditEntries(prev => [...prev, createAuditEntry({
+        signerName: signer?.name || 'Unknown', signerEmail: signer?.email || '',
+        action: `Date field set to ${today} on page ${field.page}`,
+      })])
+      return
+    }
     setActiveField(field)
     setShowSigModal(true)
   }, [selectedSignerId, signers])
@@ -100,14 +120,9 @@ export default function App() {
   const handleSignatureApplied = useCallback((dataUrl) => {
     if (!activeField) return
     const signer = signers.find(s => s.id === activeField.signerId)
-    const now = new Date().toLocaleString('en-US', {
-      year: 'numeric', month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-      timeZoneName: 'short',
-    })
     setFields(prev => prev.map(f =>
       f.id === activeField.id
-        ? { ...f, signed: true, signatureDataUrl: dataUrl, signedAt: now,
+        ? { ...f, signed: true, signatureDataUrl: dataUrl,
             signedByName: signer?.name, signedByEmail: signer?.email }
         : f
     ))

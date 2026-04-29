@@ -667,9 +667,8 @@ body {
   align-items: center;
   justify-content: center;
   transition: border-color 0.15s, background 0.15s;
-  min-width: 120px;
-  min-height: 50px;
   user-select: none;
+  overflow: hidden;
 }
 
 .signature-field:hover {
@@ -680,7 +679,23 @@ body {
 .signature-field.signed {
   border-style: solid;
   border-color: var(--success);
-  background: rgba(16, 185, 129, 0.05);
+  background: transparent;
+}
+
+.signature-field.date-field {
+  border-style: dashed;
+}
+
+.signature-field.date-field.signed {
+  border-style: solid;
+}
+
+.date-stamp {
+  font-family: var(--font);
+  font-weight: 500;
+  color: #1a1a2e;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .signature-field-label {
@@ -876,7 +891,7 @@ body {
 
 /* Draw canvas */
 .sig-draw-area {
-  background: white;
+  background: repeating-conic-gradient(#e0e0e0 0% 25%, #fff 0% 50%) 50% / 16px 16px;
   border-radius: var(--radius-md);
   overflow: hidden;
   position: relative;

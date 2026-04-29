@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { renderPdfPage, renderThumbnail } from '../utils/pdfUtils'
 import SignatureField from './SignatureField'
-import { IconPen, IconChevronLeft, IconChevronRight, IconMinus, IconPlus, IconX } from './Icons'
+import { IconPen, IconCalendar, IconChevronLeft, IconChevronRight, IconMinus, IconPlus, IconX } from './Icons'
 
 export default function PDFViewer({
   pdf,
@@ -65,6 +65,31 @@ export default function PDFViewer({
       height: 60,
       page: currentPage,
       signerId: selectedSignerId,
+      type: 'signature',
+    })
+  }
+
+  const handleAddDateClick = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    if (!selectedSignerId && signers.length > 0) {
+      alert('Please select who this date field is for using the "I am signing as" bar.')
+      return
+    }
+    if (signers.length === 0) {
+      alert('Please add at least one signer in the sidebar first.')
+      return
+    }
+    const x = (canvasSize.width / 2) - 60
+    const y = (canvasSize.height / 2) - 12
+    onAddField({
+      x: Math.max(0, x),
+      y: Math.max(0, y),
+      width: 120,
+      height: 28,
+      page: currentPage,
+      signerId: selectedSignerId,
+      type: 'date',
     })
   }
 
@@ -164,6 +189,14 @@ export default function PDFViewer({
           >
             <IconPen size={14} /> Add Signature Field
           </button>
+          <button
+            className="btn btn-secondary add-field-btn"
+            onClick={handleAddDateClick}
+            style={{ width: '100%', justifyContent: 'center', marginTop: 6 }}
+            id="add-date-btn"
+          >
+            <IconCalendar size={14} /> Add Date Field
+          </button>
           <p style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
             Fields are assigned to the currently selected signer
           </p>
@@ -202,7 +235,14 @@ export default function PDFViewer({
               onClick={handleAddFieldClick}
               id="add-field-toolbar-btn"
             >
-              <IconPen size={14} /> Add Field
+              <IconPen size={14} /> Signature
+            </button>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={handleAddDateClick}
+              id="add-date-toolbar-btn"
+            >
+              <IconCalendar size={14} /> Date
             </button>
           </div>
         </div>

@@ -16,7 +16,7 @@ export default function SignatureModal({ onApply, onClose }) {
       canvas.width = canvas.offsetWidth
       canvas.height = 160
       sigPadRef.current = new SignaturePad(canvas, {
-        backgroundColor: 'rgb(255, 255, 255)',
+        backgroundColor: 'rgba(0, 0, 0, 0)',
         penColor: '#1a1a2e',
         minWidth: 1.5,
         maxWidth: 3,
@@ -52,8 +52,7 @@ export default function SignatureModal({ onApply, onClose }) {
       canvas.width = 400
       canvas.height = 120
       const ctx = canvas.getContext('2d')
-      ctx.fillStyle = 'white'
-      ctx.fillRect(0, 0, 400, 120)
+      // Transparent background — no fillRect
       ctx.fillStyle = '#1a1a2e'
       ctx.font = '48px "Dancing Script", cursive'
       ctx.textAlign = 'center'
@@ -111,7 +110,7 @@ export default function SignatureModal({ onApply, onClose }) {
 
           {activeTab === 'draw' && (
             <div className="sig-draw-area">
-              <canvas ref={canvasRef} style={{ height: 160 }} />
+              <canvas ref={canvasRef} style={{ height: 160, background: 'rgba(255,255,255,0.05)', border: '1px dashed var(--border-subtle)' }} />
               {sigPadRef.current?.isEmpty() !== false && (
                 <span className="sig-draw-hint">Draw your signature here</span>
               )}
