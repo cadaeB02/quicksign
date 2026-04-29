@@ -799,6 +799,73 @@ body {
   to { opacity: 1; }
 }
 
+/* ===== Preview Modal ===== */
+.preview-modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  width: 92%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg), 0 0 60px var(--accent-glow);
+  animation: slideUp 0.3s ease;
+  overflow: hidden;
+}
+
+.preview-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.preview-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.preview-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.preview-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-body {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  padding: 32px;
+  background: var(--bg-primary);
+}
+
+.preview-canvas {
+  display: block;
+  box-shadow: var(--shadow-lg);
+  border-radius: 4px;
+  max-width: 100%;
+  height: auto;
+}
+
+.preview-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
 .modal-content {
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);

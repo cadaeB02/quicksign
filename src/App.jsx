@@ -3,7 +3,8 @@ import UploadScreen from './components/UploadScreen'
 import PDFViewer from './components/PDFViewer'
 import SignatureModal from './components/SignatureModal'
 import CompletionScreen from './components/CompletionScreen'
-import { IconCheckCircle, IconCheck, IconPen } from './components/Icons'
+import PreviewModal from './components/PreviewModal'
+import { IconCheckCircle, IconCheck, IconPen, IconDocument } from './components/Icons'
 import { loadPdf, embedSignatures, downloadPdf } from './utils/pdfUtils'
 import { hashDocument, createAuditEntry, buildAuditSummary } from './utils/auditTrail'
 
@@ -31,6 +32,8 @@ export default function App() {
   const [auditEntries, setAuditEntries] = useState([])
   const [auditSummary, setAuditSummary] = useState(null)
   const [signedPdfBytes, setSignedPdfBytes] = useState(null)
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewBytes, setPreviewBytes] = useState(null)
 
   const nextFieldId = useRef(1)
   const nextSignerId = useRef(1)
@@ -182,6 +185,22 @@ export default function App() {
     }
   }, [pdfFile, fields, signers, auditEntries, scale])
 
+  const handlePreview = useCallback(async () => {
+    if (!pdfFile || fields.length === 0) return
+    try {
+      const pdfBytes = pdfFile.bytes instanceof Uint8Array
+        ? pdfFile.bytes : new Uint8Array(pdfFile.arrayBuffer)
+      const signedBytes = await embedSignatures({
+        originalPdfBytes: pdfBytes, fields, scale,
+      })
+      setPreviewBytes(signedBytes)
+      setShowPreview(true)
+    } catch (err) {
+      console.error('Preview error:', err)
+      alert('Error generating preview: ' + err.message)
+    }
+  }, [pdfFile, fields, scale])
+
   const handleDownload = useCallback(() => {
     if (!signedPdfBytes) return
     const name = pdfFile?.name?.replace('.pdf', '') || 'document'
@@ -225,9 +244,14 @@ export default function App() {
                 </span>
               )}
               {hasFields && (
-                <button className="btn btn-primary btn-sm" onClick={handleFinalize} id="finalize-btn">
-                  <IconCheckCircle size={14} /> Finalize & Download
-                </button>
+                <>
+                  <button className="btn btn-secondary btn-sm" onClick={handlePreview} id="preview-btn">
+                    <IconDocument size={14} /> Preview
+                  </button>
+                  <button className="btn btn-primary btn-sm" onClick={handleFinalize} id="finalize-btn">
+                    <IconCheckCircle size={14} /> Finalize & Download
+                  </button>
+                </>
               )}
             </>
           )}
@@ -301,6 +325,13 @@ export default function App() {
         <SignatureModal
           onApply={handleSignatureApplied}
           onClose={() => { setShowSigModal(false); setActiveField(null) }}
+        />
+      )}
+
+      {showPreview && previewBytes && (
+        <PreviewModal
+          pdfBytes={previewBytes}
+          onClose={() => { setShowPreview(false); setPreviewBytes(null) }}
         />
       )}
     </div>
